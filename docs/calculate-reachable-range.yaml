@@ -1,0 +1,1102 @@
+openapi: 3.0.3
+info:
+  title: TomTom Orbis Maps - Calculate Reachable Range
+  version: "2"
+  description: |
+    Calculates a set of locations reachable from an origin point based on route type and a chosen budget.
+    Returns a polygon boundary (counterclockwise) and the precise polygon center (map-matched origin).
+    Service version: 2. Last edit: 2025-06-11.
+servers:
+  - url: https://api.tomtom.com
+    description: Default global API endpoint
+tags:
+  - name: reachable-range
+    description: Calculate reachable range
+externalDocs:
+  description: Encoded Polyline Algorithm Format
+  url: https://developers.google.com/maps/documentation/utilities/polylinealgorithm
+security:
+  - tomtomApiKey: []
+
+paths:
+  /maps/orbis/routing/calculateReachableRange/{origin}/{contentType}:
+    parameters:
+      - $ref: '#/components/parameters/Origin'
+      - $ref: '#/components/parameters/ContentType'
+    get:
+      tags: [reachable-range]
+      operationId: calculateReachableRangeGet
+      summary: Calculate reachable range (GET)
+      description: |
+        Compute reachable area for a given origin and budget.
+        Exactly one budget must be provided: fuelBudgetInLiters, energyBudgetInkWh, timeBudgetInSec, or distanceBudgetInMeters.
+        If apiVersion is not provided, header TomTom-Api-Version must be set (value 2).
+
+        Notes on route reconstruction and polylines:
+        - If a polyline is provided via POST body, the service reconstructs a route internally and ensures its reachable segment is contained in the resulting area.
+        - The first element of the given polyline must be identical to the origin point.
+        - If route reconstruction fails, the request will fail with CANNOT_RESTORE_BASEROUTE in detailedError.
+        - Road closures are ignored during route reconstruction, but not for the reachable range calculation.
+      parameters:
+        - $ref: '#/components/parameters/ApiVersion'
+        - $ref: '#/components/parameters/TomTomApiVersion'
+        - $ref: '#/components/parameters/TrackingID'
+        - $ref: '#/components/parameters/AcceptEncoding'
+        - $ref: '#/components/parameters/fuelBudgetInLiters'
+        - $ref: '#/components/parameters/energyBudgetInkWh'
+        - $ref: '#/components/parameters/timeBudgetInSec'
+        - $ref: '#/components/parameters/distanceBudgetInMeters'
+        - $ref: '#/components/parameters/maxFerryLengthInMeters'
+        - $ref: '#/components/parameters/accelerationEfficiency'
+        - $ref: '#/components/parameters/decelerationEfficiency'
+        - $ref: '#/components/parameters/uphillEfficiency'
+        - $ref: '#/components/parameters/downhillEfficiency'
+        - $ref: '#/components/parameters/consumptionInkWhPerkmAltitudeGain'
+        - $ref: '#/components/parameters/recuperationInkWhPerkmAltitudeLoss'
+        - $ref: '#/components/parameters/constantSpeedConsumptionInLitersPerHundredkm'
+        - $ref: '#/components/parameters/currentFuelInLiters'
+        - $ref: '#/components/parameters/auxiliaryPowerInLitersPerHour'
+        - $ref: '#/components/parameters/fuelEnergyDensityInMJoulesPerLiter'
+        - $ref: '#/components/parameters/constantSpeedConsumptionInkWhPerHundredkm'
+        - $ref: '#/components/parameters/currentChargeInkWh'
+        - $ref: '#/components/parameters/maxChargeInkWh'
+        - $ref: '#/components/parameters/auxiliaryPowerInkW'
+        - $ref: '#/components/parameters/departAt'
+        - $ref: '#/components/parameters/avoid'
+        - $ref: '#/components/parameters/routeType'
+        - $ref: '#/components/parameters/reconstructionMode'
+        - $ref: '#/components/parameters/traffic'
+        - $ref: '#/components/parameters/travelMode'
+        - $ref: '#/components/parameters/vehicleHasElectricTollCollectionTransponder'
+        - $ref: '#/components/parameters/vehicleMaxSpeed'
+        - $ref: '#/components/parameters/vehicleEngineType'
+        - $ref: '#/components/parameters/vehicleWeight'
+        - $ref: '#/components/parameters/vehicleModelId'
+      responses:
+        '200':
+          description: Reachable range computed successfully
+          headers:
+            Access-Control-Expose-Headers:
+              description: Whitelisted headers accessible to browsers.
+              schema:
+                type: string
+              example: Content-Length
+            Access-Control-Allow-Origin:
+              description: CORS header.
+              schema:
+                type: string
+              example: "*"
+            Content-Encoding:
+              description: Response compression if requested.
+              schema:
+                type: string
+              example: gzip
+            Content-Type:
+              description: Response content type.
+              schema:
+                type: string
+              example: application/json; charset=utf-8
+            Cache-Control:
+              description: Cache control directives.
+              schema:
+                type: string
+              example: no-cache, no-transform
+            Pragma:
+              description: HTTP/1.0 caching directive.
+              schema:
+                type: string
+              example: no-cache
+            Tracking-ID:
+              description: Echo of Tracking-ID if provided (or generated).
+              schema:
+                type: string
+            Warning:
+              description: May be sent for deprecated features.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReachableRangeSuccess'
+              examples:
+                exampleSuccess:
+                  value:
+                    formatVersion: "0.0.1"
+                    reachableRange:
+                      center:
+                        latitude: 50.9745
+                        longitude: 5.86605
+                      boundary:
+                        - latitude: 50.98532
+                          longitude: 5.86595
+                        - latitude: 50.98148
+                          longitude: 5.86371
+                        - latitude: 50.98382
+                          longitude: 5.86248
+                        - latitude: 50.97733
+                          longitude: 5.86437
+                        - latitude: 50.98242
+                          longitude: 5.85815
+                        - latitude: 50.9818
+                          longitude: 5.85436
+                        - latitude: 50.97964
+                          longitude: 5.85511
+                        - latitude: 50.97844
+                          longitude: 5.84836
+                        - latitude: 50.97732
+                          longitude: 5.84762
+                        - latitude: 50.9743
+                          longitude: 5.84969
+                        - latitude: 50.97
+                          longitude: 5.84589
+                        - latitude: 50.9668
+                          longitude: 5.85043
+                        - latitude: 50.96705
+                          longitude: 5.85374
+                        - latitude: 50.96914
+                          longitude: 5.86007
+                        - latitude: 50.96284
+                          longitude: 5.85818
+                        - latitude: 50.9658
+                          longitude: 5.86256
+                        - latitude: 50.96201
+                          longitude: 5.86273
+                        - latitude: 50.96405
+                          longitude: 5.86589
+                        - latitude: 50.97104
+                          longitude: 5.86665
+                        - latitude: 50.96513
+                          longitude: 5.86786
+                        - latitude: 50.96663
+                          longitude: 5.8692
+                        - latitude: 50.963
+                          longitude: 5.87398
+                        - latitude: 50.96437
+                          longitude: 5.87707
+                        - latitude: 50.96371
+                          longitude: 5.88459
+                        - latitude: 50.9671
+                          longitude: 5.88358
+                        - latitude: 50.97004
+                          longitude: 5.88901
+                        - latitude: 50.97098
+                          longitude: 5.89176
+                        - latitude: 50.97478
+                          longitude: 5.88689
+                        - latitude: 50.97874
+                          longitude: 5.88598
+                        - latitude: 50.98175
+                          longitude: 5.88432
+                        - latitude: 50.97871
+                          longitude: 5.873
+                        - latitude: 50.98047
+                          longitude: 5.87153
+                        - latitude: 50.97948
+                          longitude: 5.86984
+                        - latitude: 50.98555
+                          longitude: 5.87028
+                        - latitude: 50.98632
+                          longitude: 5.87009
+                        - latitude: 50.98709
+                          longitude: 5.86749
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (invalid or missing API key)
+          content:
+            text/xml:
+              schema:
+                type: string
+        '403':
+          description: Forbidden / not authorized / account inactive
+          content:
+            text/xml:
+              schema:
+                type: string
+        '404':
+          description: Not Found
+          content:
+            text/xml:
+              schema:
+                type: string
+        '405':
+          description: Method Not Allowed (only GET or POST supported)
+          content:
+            text/xml:
+              schema:
+                type: string
+        '408':
+          description: Request timeout
+          content:
+            text/xml:
+              schema:
+                type: string
+        '414':
+          description: Requested URI is too long
+          content:
+            text/xml:
+              schema:
+                type: string
+        '415':
+          description: Unsupported Media Type
+          content:
+            text/xml:
+              schema:
+                type: string
+        '429':
+          description: Too Many Requests (rate limit exceeded for API key)
+          content:
+            text/xml:
+              schema:
+                type: string
+        '500':
+          description: Server error (may include internal compute time limit exceeded)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+            text/xml:
+              schema:
+                type: string
+        '502':
+          description: Internal network connectivity issue
+          content:
+            text/xml:
+              schema:
+                type: string
+        '503':
+          description: Service currently unavailable
+          content:
+            text/xml:
+              schema:
+                type: string
+        '504':
+          description: Internal network connectivity issue
+          content:
+            text/xml:
+              schema:
+                type: string
+        '596':
+          description: Service not found
+          content:
+            text/xml:
+              schema:
+                type: string
+    post:
+      tags: [reachable-range]
+      operationId: calculateReachableRangePost
+      summary: Calculate reachable range (POST)
+      description: |
+        Same as GET, with optional request body to provide supporting points or an encoded polyline.
+        If apiVersion is not provided, header TomTom-Api-Version must be set (value 2).
+
+        Route geometry representation formats:
+        - supportingPoints: array of points (raw decimal coordinates).
+        - encodedPolyline: string in the encoded polyline format; precision must be provided via encodedPolylinePrecision.
+        - Precision must be 7 for this service.
+
+        Constraints:
+        - First element of the polyline must match the origin.
+        - If vehicleEngineType=combustion and a polyline is provided, fuelBudgetInLiters and a detailed combustion model are mandatory.
+        - If vehicleEngineType=electric and a polyline is provided, energyBudgetInkWh and a detailed electric model OR vehicleModelId are mandatory.
+        - If route reconstruction fails, the request fails with CANNOT_RESTORE_BASEROUTE in detailedError.
+        - Road closures are ignored during polyline reconstruction but not for reachable range calculation.
+      parameters:
+        - $ref: '#/components/parameters/ApiVersion'
+        - $ref: '#/components/parameters/TomTomApiVersion'
+        - $ref: '#/components/parameters/TrackingID'
+        - $ref: '#/components/parameters/AcceptEncoding'
+        - $ref: '#/components/parameters/ContentEncoding'
+        - $ref: '#/components/parameters/fuelBudgetInLiters'
+        - $ref: '#/components/parameters/energyBudgetInkWh'
+        - $ref: '#/components/parameters/timeBudgetInSec'
+        - $ref: '#/components/parameters/distanceBudgetInMeters'
+        - $ref: '#/components/parameters/maxFerryLengthInMeters'
+        - $ref: '#/components/parameters/accelerationEfficiency'
+        - $ref: '#/components/parameters/decelerationEfficiency'
+        - $ref: '#/components/parameters/uphillEfficiency'
+        - $ref: '#/components/parameters/downhillEfficiency'
+        - $ref: '#/components/parameters/consumptionInkWhPerkmAltitudeGain'
+        - $ref: '#/components/parameters/recuperationInkWhPerkmAltitudeLoss'
+        - $ref: '#/components/parameters/constantSpeedConsumptionInLitersPerHundredkm'
+        - $ref: '#/components/parameters/currentFuelInLiters'
+        - $ref: '#/components/parameters/auxiliaryPowerInLitersPerHour'
+        - $ref: '#/components/parameters/fuelEnergyDensityInMJoulesPerLiter'
+        - $ref: '#/components/parameters/constantSpeedConsumptionInkWhPerHundredkm'
+        - $ref: '#/components/parameters/currentChargeInkWh'
+        - $ref: '#/components/parameters/maxChargeInkWh'
+        - $ref: '#/components/parameters/auxiliaryPowerInkW'
+        - $ref: '#/components/parameters/departAt'
+        - $ref: '#/components/parameters/avoid'
+        - $ref: '#/components/parameters/routeType'
+        - $ref: '#/components/parameters/reconstructionMode'
+        - $ref: '#/components/parameters/traffic'
+        - $ref: '#/components/parameters/travelMode'
+        - $ref: '#/components/parameters/vehicleHasElectricTollCollectionTransponder'
+        - $ref: '#/components/parameters/vehicleMaxSpeed'
+        - $ref: '#/components/parameters/vehicleEngineType'
+        - $ref: '#/components/parameters/vehicleWeight'
+        - $ref: '#/components/parameters/vehicleModelId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReachableRangeRequest'
+            examples:
+              supportingPoints:
+                summary: Supporting points body
+                value:
+                  supportingPoints:
+                    - latitude: 52.50931
+                      longitude: 13.42936
+                    - latitude: 52.50872
+                      longitude: 13.429
+                    - latitude: 52.50844
+                      longitude: 13.42859
+              encodedPolyline:
+                summary: Encoded polyline body
+                value:
+                  encodedPolyline: "wmcph^_esc_GvoJ~_F~mDf_G"
+                  encodedPolylinePrecision: 7
+              empty:
+                summary: Empty body (e.g., when vehicleModelId is provided via query)
+                value: {}
+      responses:
+        '200':
+          description: Reachable range computed successfully
+          headers:
+            Access-Control-Expose-Headers:
+              description: Whitelisted headers accessible to browsers.
+              schema:
+                type: string
+              example: Content-Length
+            Access-Control-Allow-Origin:
+              description: CORS header.
+              schema:
+                type: string
+              example: "*"
+            Content-Encoding:
+              description: Response compression if requested.
+              schema:
+                type: string
+              example: gzip
+            Content-Type:
+              description: Response content type.
+              schema:
+                type: string
+              example: application/json; charset=utf-8
+            Cache-Control:
+              description: Cache control directives.
+              schema:
+                type: string
+              example: no-cache, no-transform
+            Pragma:
+              description: HTTP/1.0 caching directive.
+              schema:
+                type: string
+              example: no-cache
+            Tracking-ID:
+              description: Echo of Tracking-ID if provided (or generated).
+              schema:
+                type: string
+            Warning:
+              description: May be sent for deprecated features.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReachableRangeSuccess'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (invalid or missing API key)
+          content:
+            text/xml:
+              schema:
+                type: string
+        '403':
+          description: Forbidden / not authorized / account inactive
+          content:
+            text/xml:
+              schema:
+                type: string
+        '404':
+          description: Not Found
+          content:
+            text/xml:
+              schema:
+                type: string
+        '405':
+          description: Method Not Allowed (only GET or POST supported)
+          content:
+            text/xml:
+              schema:
+                type: string
+        '408':
+          description: Request timeout
+          content:
+            text/xml:
+              schema:
+                type: string
+        '414':
+          description: Requested URI is too long
+          content:
+            text/xml:
+              schema:
+                type: string
+        '415':
+          description: Unsupported Media Type
+          content:
+            text/xml:
+              schema:
+                type: string
+        '429':
+          description: Too Many Requests (rate limit exceeded for API key)
+          content:
+            text/xml:
+              schema:
+                type: string
+        '500':
+          description: Server error (may include internal compute time limit exceeded)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+            text/xml:
+              schema:
+                type: string
+        '502':
+          description: Internal network connectivity issue
+          content:
+            text/xml:
+              schema:
+                type: string
+        '503':
+          description: Service currently unavailable
+          content:
+            text/xml:
+              schema:
+                type: string
+        '504':
+          description: Internal network connectivity issue
+          content:
+            text/xml:
+              schema:
+                type: string
+        '596':
+          description: Service not found
+          content:
+            text/xml:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    tomtomApiKey:
+      type: apiKey
+      in: query
+      name: key
+      description: TomTom API key provided as query parameter `key`.
+
+  parameters:
+    Origin:
+      name: origin
+      in: path
+      required: true
+      description: Latitude,longitude pair in EPSG:4326. Example "52.37245,4.89406".
+      schema:
+        type: string
+        example: "52.50931,13.42936"
+    ContentType:
+      name: contentType
+      in: path
+      required: true
+      description: Response content type.
+      schema:
+        type: string
+        enum: [json]
+        example: json
+
+    ApiVersion:
+      name: apiVersion
+      in: query
+      required: false
+      description: |
+        API version. Only allowed value is 2.
+        If not provided, header TomTom-Api-Version: 2 must be set.
+      schema:
+        type: integer
+        enum: [2]
+        example: 2
+    TomTomApiVersion:
+      name: TomTom-Api-Version
+      in: header
+      required: false
+      description: |
+        API version header. Only allowed value is 2.
+        Required if query parameter apiVersion is not provided.
+      schema:
+        type: integer
+        enum: [2]
+        example: 2
+
+    TrackingID:
+      name: Tracking-ID
+      in: header
+      required: false
+      description: |
+        Identifier for the request. Must match regex ^[a-zA-Z0-9-_.]{1,100}$.
+        Echoed in the response header if provided.
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9-_.]{1,100}$'
+    AcceptEncoding:
+      name: Accept-Encoding
+      in: header
+      required: false
+      description: Request gzip-compressed response.
+      schema:
+        type: string
+        enum: [gzip]
+    ContentEncoding:
+      name: Content-Encoding
+      in: header
+      required: false
+      description: Compression used for the request body (POST only). If not specified, identity is assumed.
+      schema:
+        type: string
+        enum: [identity, gzip]
+
+    fuelBudgetInLiters:
+      name: fuelBudgetInLiters
+      in: query
+      required: false
+      description: |
+        Fuel budget in liters used with the Combustion Consumption Model.
+        Minimum 0, maximum 10000 (and no more than currentFuelInLiters if specified).
+      schema:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 10000
+    energyBudgetInkWh:
+      name: energyBudgetInkWh
+      in: query
+      required: false
+      description: |
+        Electric energy budget (kWh) used with the Electric Consumption Model or Vehicle Model ID.
+        Minimum 0, maximum 10000 (and no more than currentChargeInkWh if specified).
+      schema:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 10000
+    timeBudgetInSec:
+      name: timeBudgetInSec
+      in: query
+      required: false
+      description: |
+        Time budget in seconds. Combustion/Electric models or Vehicle Model ID affect range only when routeType = efficient.
+      schema:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 10000000
+    distanceBudgetInMeters:
+      name: distanceBudgetInMeters
+      in: query
+      required: false
+      description: |
+        Distance budget in meters. Combustion/Electric models or Vehicle Model ID affect range only when routeType = efficient.
+      schema:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 50000000
+
+    maxFerryLengthInMeters:
+      name: maxFerryLengthInMeters
+      in: query
+      required: false
+      description: |
+        Limit (in meters) for a single ferry connection to be included.
+        Entire connection length must be shorter than this distance (exclusive).
+        0 excludes all ferry connections.
+      schema:
+        type: number
+        format: float
+        minimum: 0
+        maximum: 20000
+        default: 20000
+
+    departAt:
+      name: departAt
+      in: query
+      required: false
+      description: |
+        Departure date-time. Default "now". If timezone offset omitted, assumed to be origin's time zone.
+        Use RFC 3339 format for specific times.
+      schema:
+        oneOf:
+          - type: string
+            enum: ["now"]
+          - type: string
+            format: date-time
+        default: "now"
+        example: "2023-12-19T16:39:57-08:00"
+
+    avoid:
+      name: avoid
+      in: query
+      required: false
+      description: |
+        Specify one or more avoidances. May be provided multiple times.
+        Allowed values: tollRoads, motorways, ferries, unpavedRoads, carpools, borderCrossings, tunnels, carTrains, lowEmissionZones.
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - tollRoads
+            - motorways
+            - ferries
+            - unpavedRoads
+            - carpools
+            - borderCrossings
+            - tunnels
+            - carTrains
+            - lowEmissionZones
+      example:
+        - unpavedRoads
+        - ferries
+
+    routeType:
+      name: routeType
+      in: query
+      required: false
+      description: Route optimization type.
+      schema:
+        type: string
+        enum: [fast, short, efficient, thrilling]
+        default: fast
+
+    reconstructionMode:
+      name: reconstructionMode
+      in: query
+      required: false
+      description: |
+        How to reconstruct a given polyline or legs. Only applicable when a polyline representation is provided.
+        - track: allows leeway; respects restrictions and traffic; use for third-party/recorded tracks.
+        - route: reconstruct as close as possible; may violate some restrictions; use for routes returned by this service.
+        - update: keep input geometry stable; ignores time-dependent/no-through restrictions; use to refresh dynamic data.
+      schema:
+        type: string
+        enum: [track, route, update]
+        default: track
+
+    traffic:
+      name: traffic
+      in: query
+      required: false
+      description: How traffic is considered.
+      schema:
+        type: string
+        enum: [live, historical]
+        default: live
+
+    travelMode:
+      name: travelMode
+      in: query
+      required: false
+      description: Only allowed value is car.
+      schema:
+        type: string
+        enum: [car]
+        default: car
+
+    vehicleHasElectricTollCollectionTransponder:
+      name: vehicleHasElectricTollCollectionTransponder
+      in: query
+      required: false
+      description: |
+        Whether to avoid ETC-transponder-only toll roads when the vehicle has no transponder.
+        all = do not avoid; none = avoid ETC-transponder-only toll roads.
+      schema:
+        type: string
+        enum: [all, none]
+        default: all
+
+    vehicleMaxSpeed:
+      name: vehicleMaxSpeed
+      in: query
+      required: false
+      description: |
+        Maximum vehicle speed (km/h). 0 means an appropriate value will be determined during range calculation.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 250
+        default: 0
+
+    vehicleEngineType:
+      name: vehicleEngineType
+      in: query
+      required: false
+      description: Engine type of the vehicle.
+      schema:
+        type: string
+        enum: [combustion, electric]
+        default: combustion
+
+    vehicleWeight:
+      name: vehicleWeight
+      in: query
+      required: false
+      description: |
+        Vehicle weight in kilograms. If positive, restricts roads by weight limits.
+        Must be > 0 when using detailed combustion or electric consumption models.
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+        default: 0
+
+    vehicleModelId:
+      name: vehicleModelId
+      in: query
+      required: false
+      description: |
+        Vehicle Model ID from TomTom Vehicle Database. Enables range calculation without specifying detailed consumption.
+        When provided, parameters of the detailed consumption model cannot be specified (except currentChargeInkWh).
+      schema:
+        type: string
+        format: uuid
+        example: "ed4933ba-4b61-4f3d-b2c9-19bb1174ba06"
+
+    # Combustion consumption model (used when fuelBudgetInLiters is provided)
+    constantSpeedConsumptionInLitersPerHundredkm:
+      name: constantSpeedConsumptionInLitersPerHundredkm
+      in: query
+      required: false
+      description: |
+        Speed-dependent combustion consumption as colon-delimited pairs: "speedInkmh,consumptionInLitersPerHundredkm".
+        - 1 to 25 points (inclusive); no duplicate speeds.
+        - SpeedInkmh in [0.0, 255.0].
+        - Consumption in [0.01, 100000.0] (l/100km).
+        - Interpolate linearly between points; extrapolate linearly using the nearest two points.
+        - Consumption at highest speed must be >= consumption at penultimate highest speed; low-end values must not imply negative rates.
+      schema:
+        type: string
+        example: "50,6.3:130,11.5"
+    currentFuelInLiters:
+      name: currentFuelInLiters
+      in: query
+      required: false
+      description: Current supply of fuel in liters.
+      schema:
+        type: number
+        format: float
+        minimum: 0.0
+        example: 55
+    auxiliaryPowerInLitersPerHour:
+      name: auxiliaryPowerInLitersPerHour
+      in: query
+      required: false
+      description: Fuel consumed for auxiliary systems (l/h).
+      schema:
+        type: number
+        format: float
+        minimum: 0.0
+        example: 0.2
+    fuelEnergyDensityInMJoulesPerLiter:
+      name: fuelEnergyDensityInMJoulesPerLiter
+      in: query
+      required: false
+      description: |
+        Chemical energy per liter of fuel (MJ/l). Required if any efficiency parameter is set.
+        Examples: gasoline ~34.2 MJ/l, diesel ~35.8 MJ/l.
+      schema:
+        type: number
+        format: float
+        minimum: 1.0
+        example: 34.2
+    accelerationEfficiency:
+      name: accelerationEfficiency
+      in: query
+      required: false
+      description: |
+        Efficiency of converting energy to kinetic energy during acceleration.
+        Combustion: KineticEnergyGained / ChemicalEnergyConsumed (requires fuelEnergyDensityInMJoulesPerLiter).
+        Electric:   KineticEnergyGained / ElectricEnergyConsumed.
+        Notes:
+        - Must be paired with decelerationEfficiency.
+        - Requires vehicleWeight to be set.
+        - For Electric, cannot be used with consumptionInkWhPerkmAltitudeGain or recuperationInkWhPerkmAltitudeLoss.
+        - Dynamic constraint: maximum is 1 / decelerationEfficiency.
+      schema:
+        type: number
+        format: float
+        minimum: 0.0
+      examples:
+        combustion:
+          value: 0.33
+        electric:
+          value: 0.66
+    decelerationEfficiency:
+      name: decelerationEfficiency
+      in: query
+      required: false
+      description: |
+        Efficiency when converting kinetic energy back to saved energy.
+        Combustion: ChemicalEnergySaved / KineticEnergyLost (requires fuelEnergyDensityInMJoulesPerLiter).
+        Electric:   ElectricEnergyGained / KineticEnergyLost.
+        Notes:
+        - Must be paired with accelerationEfficiency.
+        - Requires vehicleWeight to be set.
+        - For Electric, cannot be used with consumptionInkWhPerkmAltitudeGain or recuperationInkWhPerkmAltitudeLoss.
+        - Dynamic constraint: maximum is 1 / accelerationEfficiency.
+      schema:
+        type: number
+        format: float
+        minimum: 0.0
+      examples:
+        combustion:
+          value: 0.83
+        electric:
+          value: 0.91
+    uphillEfficiency:
+      name: uphillEfficiency
+      in: query
+      required: false
+      description: |
+        Efficiency related to elevation gain.
+        Combustion: PotentialEnergyGained / ChemicalEnergyConsumed (requires fuelEnergyDensityInMJoulesPerLiter).
+        Electric:   PotentialEnergyGained / ElectricEnergyConsumed.
+        Notes:
+        - Must be paired with downhillEfficiency.
+        - Requires vehicleWeight to be set.
+        - For Electric, cannot be used with consumptionInkWhPerkmAltitudeGain or recuperationInkWhPerkmAltitudeLoss.
+        - Dynamic constraint: maximum is 1 / downhillEfficiency.
+      schema:
+        type: number
+        format: float
+        minimum: 0.0
+      examples:
+        combustion:
+          value: 0.27
+        electric:
+          value: 0.74
+    downhillEfficiency:
+      name: downhillEfficiency
+      in: query
+      required: false
+      description: |
+        Efficiency related to elevation loss.
+        Combustion: ChemicalEnergySaved / PotentialEnergyLost (requires fuelEnergyDensityInMJoulesPerLiter).
+        Electric:   ElectricEnergyGained / PotentialEnergyLost.
+        Notes:
+        - Must be paired with uphillEfficiency.
+        - Requires vehicleWeight to be set.
+        - For Electric, cannot be used with consumptionInkWhPerkmAltitudeGain or recuperationInkWhPerkmAltitudeLoss.
+        - Dynamic constraint: maximum is 1 / uphillEfficiency.
+      schema:
+        type: number
+        format: float
+        minimum: 0.0
+      examples:
+        combustion:
+          value: 0.51
+        electric:
+          value: 0.73
+
+    # Electric model (used when energyBudgetInkWh is provided)
+    constantSpeedConsumptionInkWhPerHundredkm:
+      name: constantSpeedConsumptionInkWhPerHundredkm
+      in: query
+      required: false
+      description: |
+        Electric constant speed consumption pairs "speedInkmh,consumptionInkWhPerHundredkm" separated by ":".
+        - 1 to 25 points (inclusive); no duplicate speeds.
+        - SpeedInkmh in [0.0, 255.0].
+        - Consumption in [0.01, 100000.0] (kWh/100km).
+        - Interpolate linearly between points; extrapolate linearly using the nearest two points.
+        - Consumption at highest speed must be >= consumption at penultimate highest speed; low-end values must not imply negative rates.
+      schema:
+        type: string
+        example: "50,8.2:130,21.3"
+    currentChargeInkWh:
+      name: currentChargeInkWh
+      in: query
+      required: false
+      description: |
+        Current battery charge in kWh.
+        Maximum is limited by vehicle's battery capacity (from vehicleModelId or maxChargeInkWh).
+      schema:
+        type: number
+        format: float
+        minimum: 0.0
+        example: 43
+    maxChargeInkWh:
+      name: maxChargeInkWh
+      in: query
+      required: false
+      description: |
+        Maximum battery capacity in kWh.
+        Minimum must be >= currentChargeInkWh when both are provided.
+      schema:
+        type: number
+        format: float
+        minimum: 0.0
+        example: 85
+    auxiliaryPowerInkW:
+      name: auxiliaryPowerInkW
+      in: query
+      required: false
+      description: Auxiliary power consumption in kW.
+      schema:
+        type: number
+        format: float
+        minimum: 0.0
+        default: 0.0
+        example: 1.7
+    consumptionInkWhPerkmAltitudeGain:
+      name: consumptionInkWhPerkmAltitudeGain
+      in: query
+      required: false
+      description: |
+        Electric energy (kWh) consumed by gaining 1000 meters of elevation.
+        Notes:
+        - Must be paired with recuperationInkWhPerkmAltitudeLoss.
+        - Cannot be used with accelerationEfficiency, decelerationEfficiency, uphillEfficiency, or downhillEfficiency.
+        - Dynamic constraints: min = recuperationInkWhPerkmAltitudeLoss; max = 500.0.
+      schema:
+        type: number
+        format: float
+        minimum: 0.0
+        maximum: 500.0
+        example: 7.0
+    recuperationInkWhPerkmAltitudeLoss:
+      name: recuperationInkWhPerkmAltitudeLoss
+      in: query
+      required: false
+      description: |
+        Electric energy (kWh) gained by losing 1000 meters of elevation.
+        Notes:
+        - Must be paired with consumptionInkWhPerkmAltitudeGain.
+        - Cannot be used with accelerationEfficiency, decelerationEfficiency, uphillEfficiency, or downhillEfficiency.
+        - Dynamic constraint: max = consumptionInkWhPerkmAltitudeGain.
+      schema:
+        type: number
+        format: float
+        minimum: 0.0
+        example: 3.8
+
+  schemas:
+    Point:
+      type: object
+      description: A location expressed as latitude and longitude in EPSG:4326.
+      properties:
+        latitude:
+          type: number
+          format: float
+          minimum: -90
+          maximum: 90
+          example: 52.50931
+        longitude:
+          type: number
+          format: float
+          minimum: -180
+          maximum: 180
+          example: 13.42936
+      required: [latitude, longitude]
+
+    ReachableRangeRequest:
+      type: object
+      description: |
+        Optional request body for POST to provide supporting points or an encoded polyline.
+        Constraints:
+        - First element of the polyline must equal the origin.
+        - encodedPolylinePrecision must be 7 when encodedPolyline is provided.
+      properties:
+        supportingPoints:
+          type: array
+          description: Locations to be used as input for route reconstruction.
+          items:
+            $ref: '#/components/schemas/Point'
+        encodedPolyline:
+          type: string
+          description: Encoded polyline string.
+          example: "wmcph^_esc_GvoJ~_F~mDf_G"
+        encodedPolylinePrecision:
+          type: integer
+          description: Precision used to encode the polyline; must be paired with encodedPolyline.
+          enum: [7]
+      additionalProperties: false
+
+    ReachableRange:
+      type: object
+      description: A polygon described by means of a center field and a boundary field.
+      properties:
+        center:
+          $ref: '#/components/schemas/Point'
+        boundary:
+          type: array
+          description: Polygon boundary as an array of points (counterclockwise orientation).
+          items:
+            $ref: '#/components/schemas/Point'
+      required: [center, boundary]
+
+    ReachableRangeSuccess:
+      type: object
+      description: Successful response payload.
+      properties:
+        formatVersion:
+          type: string
+          description: The format version.
+        reachableRange:
+          $ref: '#/components/schemas/ReachableRange'
+      required: [formatVersion, reachableRange]
+
+    ErrorResponse:
+      type: object
+      description: Error response payload.
+      properties:
+        formatVersion:
+          type: string
+          description: The format version.
+        detailedError:
+          type: object
+          description: Representation of the error message.
+          properties:
+            code:
+              type: string
+              description: Error code.
+              enum:
+                - MAP_MATCHING_FAILURE
+                - NO_RANGE_FOUND
+                - CANNOT_RESTORE_BASEROUTE
+                - BAD_INPUT
+                - COMPUTE_TIME_LIMIT_EXCEEDED
+            message:
+              type: string
+              description: Human-readable error message, may include the error code.
+          required: [code, message]
+      required: [formatVersion, detailedError]
+      example:
+        formatVersion: "0.0.12"
+        detailedError:
+          code: MAP_MATCHING_FAILURE
+          message: "Engine error while executing range request: MAP_MATCHING_FAILURE: Origin (54.3226, 3.11463)"

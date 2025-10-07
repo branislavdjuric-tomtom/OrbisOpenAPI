@@ -1,0 +1,431 @@
+openapi: 3.0.3
+info:
+  title: TomTom Orbis Maps Routing API - Calculate Route (POC)
+  version: 0.1.0-orbis
+  description: Unofficial POC OpenAPI specification for TomTom Orbis Maps calculateRoute endpoint. Private use only.
+  x-serviceVersion: "2"
+  x-lastEdit: "2024-06-04"
+externalDocs:
+  description: Orbis Calculate Route docs
+  url: https://developer.tomtom.com
+servers:
+  - url: https://api.tomtom.com/maps/orbis
+    description: TomTom Orbis Maps base URL
+security:
+  - TomTomApiKey: []
+tags:
+  - name: OrbisRouting
+    description: Route calculation (TomTom Orbis Maps)
+components:
+  securitySchemes:
+    TomTomApiKey:
+      type: apiKey
+      in: query
+      name: key
+  parameters:
+    RoutePlanningLocations:
+      name: routePlanningLocations
+      in: path
+      required: true
+      description: >
+        Sequence of coordinates encoded as 'lat,lon:lat,lon(:lat,lon...)' (origin to destination, optional intermediates).
+      schema:
+        type: string
+        pattern: '^(-?\\d+(\\.\\d+)?),(-?\\d+(\\.\\d+)?)(:(-?\\d+(\\.\\d+)?),(-?\\d+(\\.\\d+)?))*$'
+        example: '52.508,13.329:52.502,13.332'
+    ContentType:
+      name: contentType
+      in: path
+      required: true
+      description: Response content type.
+      schema:
+        type: string
+        enum: [json]
+        default: json
+    ComputeTravelTimeFor:
+      name: computeTravelTimeFor
+      in: query
+      description: >
+        Whether to compute additional travel times (besides the best-estimate): none (default) or all (adds
+        noTrafficTravelTimeInSeconds, historicTrafficTravelTimeInSeconds, liveTrafficIncidentsTravelTimeInSeconds to route summary).
+      schema:
+        type: string
+        enum: [none, all]
+        default: none
+    SectionType:
+      name: sectionType
+      in: query
+      description: >
+        Which section types to include in the response. May be specified multiple times
+        (e.g., ...&sectionType=tollRoad&sectionType=tollVignette...). Additional Orbis values:
+        tollRoad, toll, tollVignette, roadShields, importantRoadStretch.
+        Note: If importantRoadStretch is requested, language must also be set.
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          type: string
+          enum: [tollRoad, toll, tollVignette, roadShields, importantRoadStretch]
+    VehicleCommercial:
+      name: vehicleCommercial
+      in: query
+      description: Default and only allowed value is false.
+      schema:
+        type: boolean
+        enum: [false]
+        default: false
+    Language:
+      name: language
+      in: query
+      description: >
+        Language of returned names and phonetics (IETF language tag). If not supported, en-GB is used.
+        See Orbis Supported Languages.
+      schema:
+        type: string
+        example: en-GB
+    RouteType:
+      name: routeType
+      in: query
+      description: Route type optimization.
+      schema:
+        type: string
+        enum: [fastest, shortest, eco]
+        default: fastest
+    TravelMode:
+      name: travelMode
+      in: query
+      description: Mode of travel/vehicle profile.
+      schema:
+        type: string
+        enum: [car, truck, bus, bicycle, pedestrian, motorcycle, van]
+        default: car
+    DepartAt:
+      name: departAt
+      in: query
+      description: Departure time (ISO-8601). Do not use with arriveAt.
+      schema:
+        type: string
+        format: date-time
+    ArriveAt:
+      name: arriveAt
+      in: query
+      description: Desired arrival time (ISO-8601). Do not use with departAt.
+      schema:
+        type: string
+        format: date-time
+    Traffic:
+      name: traffic
+      in: query
+      description: Consider traffic in calculations.
+      schema:
+        type: boolean
+        default: true
+    InstructionsType:
+      name: instructionsType
+      in: query
+      description: Instruction output format.
+      schema:
+        type: string
+        enum: [text, tagged]
+        default: text
+  schemas:
+    LatLon:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: double
+          example: 52.508
+        longitude:
+          type: number
+          format: double
+          example: 13.329
+    CalculateRouteRequest:
+      type: object
+      required: [locations]
+      properties:
+        locations:
+          type: array
+          minItems: 2
+          description: Ordered list of waypoints (origin, destination, optional intermediates).
+          items:
+            $ref: '#/components/schemas/LatLon'
+        # Standard options (subset for POC; additional options may be supported)
+        avoid:
+          type: array
+          description: Features/road types to avoid.
+          items:
+            type: string
+            enum: [motorways, tollRoads, ferries, unpavedRoads, carPools, alreadyUsedRoads]
+        routeType:
+          type: string
+          enum: [fastest, shortest, eco]
+          default: fastest
+        travelMode:
+          type: string
+          enum: [car, truck, bus, bicycle, pedestrian, motorcycle, van]
+          default: car
+        traffic:
+          type: boolean
+          default: true
+        language:
+          type: string
+          example: en-GB
+        instructionsType:
+          type: string
+          enum: [text, tagged]
+          default: text
+        maxAlternatives:
+          type: integer
+          minimum: 0
+          maximum: 6
+          default: 0
+        departAt:
+          type: string
+          format: date-time
+          description: ISO-8601 departure time. Do not use together with arriveAt.
+        arriveAt:
+          type: string
+          format: date-time
+          description: ISO-8601 arrival time. Do not use together with departAt.
+    OrbisRouteResponse:
+      type: object
+      description: >
+        Orbis calculateRoute response (POC). Contains additional fields when specific parameters are requested.
+      properties:
+        formatVersion:
+          type: string
+          example: "0.0.12"
+        roadShieldAtlasReference:
+          type: string
+          description: Present when sectionType=roadShields is requested.
+        routes:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrbisRoute'
+      additionalProperties: true
+    OrbisRoute:
+      type: object
+      properties:
+        summary:
+          $ref: '#/components/schemas/OrbisRouteSummary'
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrbisSection'
+      additionalProperties: true
+    OrbisRouteSummary:
+      type: object
+      properties:
+        lengthInMeters:
+          type: integer
+        travelTimeInSeconds:
+          type: integer
+        trafficDelayInSeconds:
+          type: integer
+        trafficLengthInMeters:
+          type: integer
+        departureTime:
+          type: string
+        arrivalTime:
+          type: string
+        batteryConsumptionInkWh:
+          type: number
+          format: double
+          description: Present when EV options are in effect.
+        noTrafficTravelTimeInSeconds:
+          type: integer
+          description: Present when computeTravelTimeFor=all.
+        historicTrafficTravelTimeInSeconds:
+          type: integer
+          description: Present when computeTravelTimeFor=all.
+        liveTrafficIncidentsTravelTimeInSeconds:
+          type: integer
+          description: Present when computeTravelTimeFor=all.
+      additionalProperties: true
+    OrbisSection:
+      type: object
+      properties:
+        startPointIndex:
+          type: integer
+        endPointIndex:
+          type: integer
+        sectionType:
+          type: string
+          description: Response section type.
+          enum: [TOLL_ROAD, TOLL, TOLL_VIGNETTE, ROAD_SHIELDS, IMPORTANT_ROAD_STRETCH]
+        importantRoadStretchIndex:
+          type: integer
+          description: Present for IMPORTANT_ROAD_STRETCH; lower value means higher importance (starts at 0).
+        streetName:
+          $ref: '#/components/schemas/StreetName'
+        roadNumbers:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoadNumber'
+        roadShieldReferences:
+          type: array
+          description: Present for ROAD_SHIELDS sections.
+          items:
+            $ref: '#/components/schemas/RoadShieldReference'
+      additionalProperties: true
+    StreetName:
+      type: object
+      properties:
+        text:
+          type: string
+    RoadNumber:
+      type: object
+      properties:
+        text:
+          type: string
+    RoadShieldReference:
+      type: object
+      properties:
+        reference:
+          type: string
+          description: Unique identifier for the road shield.
+        shieldContent:
+          type: string
+          description: Optional text to be shown on the road shield.
+        affixes:
+          type: array
+          items:
+            type: string
+          description: Optional list of affixes shown in addition to shieldContent.
+  examples:
+    OrbisCalculateRouteResponse:
+      summary: Example response with additional Orbis fields
+      value:
+        formatVersion: "0.0.12"
+        routes:
+          - summary:
+              lengthInMeters: 1147
+              travelTimeInSeconds: 161
+              trafficDelayInSeconds: 15
+              trafficLengthInMeters: 147
+              departureTime: "2015-04-02T15:01:57+02:00"
+              arrivalTime: "2015-04-02T15:04:38+02:00"
+              batteryConsumptionInkWh: 0.155
+              noTrafficTravelTimeInSeconds: 94
+              historicTrafficTravelTimeInSeconds: 113
+              liveTrafficIncidentsTravelTimeInSeconds: 161
+            sections:
+              - startPointIndex: 2
+                endPointIndex: 5
+                sectionType: TOLL_ROAD
+              - startPointIndex: 0
+                endPointIndex: 3
+                sectionType: IMPORTANT_ROAD_STRETCH
+                importantRoadStretchIndex: 0
+                streetName:
+                  text: "Sample Street"
+              - startPointIndex: 5
+                endPointIndex: 6
+                sectionType: IMPORTANT_ROAD_STRETCH
+                importantRoadStretchIndex: 0
+                streetName:
+                  text: "Sample Street"
+              - startPointIndex: 6
+                endPointIndex: 7
+                sectionType: IMPORTANT_ROAD_STRETCH
+                importantRoadStretchIndex: 2
+                streetName:
+                  text: "Another Street"
+                roadNumbers:
+                  - text: "A10"
+                  - text: "E10"
+              - startPointIndex: 8
+                endPointIndex: 9
+                sectionType: IMPORTANT_ROAD_STRETCH
+                importantRoadStretchIndex: 1
+                roadNumbers:
+                  - text: "A10"
+paths:
+  /routing/calculateRoute/{routePlanningLocations}/{contentType}:
+    get:
+      tags: [OrbisRouting]
+      operationId: calculateRouteOrbisGet
+      summary: Calculate a route (Orbis GET)
+      description: Calculate a route using path-encoded locations. Orbis-specific parameters supported.
+      parameters:
+        - $ref: '#/components/parameters/RoutePlanningLocations'
+        - $ref: '#/components/parameters/ContentType'
+        - $ref: '#/components/parameters/ComputeTravelTimeFor'
+        - $ref: '#/components/parameters/SectionType'
+        - $ref: '#/components/parameters/VehicleCommercial'
+        - $ref: '#/components/parameters/Language'
+        # Common routing options (subset)
+        - $ref: '#/components/parameters/RouteType'
+        - $ref: '#/components/parameters/TravelMode'
+        - $ref: '#/components/parameters/DepartAt'
+        - $ref: '#/components/parameters/ArriveAt'
+        - $ref: '#/components/parameters/Traffic'
+        - $ref: '#/components/parameters/InstructionsType'
+      security:
+        - TomTomApiKey: []
+      responses:
+        '200':
+          description: Route calculated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrbisRouteResponse'
+              examples:
+                orbis:
+                  $ref: '#/components/examples/OrbisCalculateRouteResponse'
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized (invalid API key)
+  /routing/calculateRoute/{contentType}:
+    post:
+      tags: [OrbisRouting]
+      operationId: calculateRouteOrbisPost
+      summary: Calculate a route (Orbis POST)
+      description: Calculate a route using JSON body with locations. Orbis-specific parameters supported.
+      security:
+        - TomTomApiKey: []
+      parameters:
+        - $ref: '#/components/parameters/ContentType'
+        - $ref: '#/components/parameters/ComputeTravelTimeFor'
+        - $ref: '#/components/parameters/SectionType'
+        - $ref: '#/components/parameters/VehicleCommercial'
+        - $ref: '#/components/parameters/Language'
+        # Common routing options (subset)
+        - $ref: '#/components/parameters/RouteType'
+        - $ref: '#/components/parameters/TravelMode'
+        - $ref: '#/components/parameters/DepartAt'
+        - $ref: '#/components/parameters/ArriveAt'
+        - $ref: '#/components/parameters/Traffic'
+        - $ref: '#/components/parameters/InstructionsType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalculateRouteRequest'
+            example:
+              locations:
+                - { latitude: 52.508, longitude: 13.329 }
+                - { latitude: 52.502, longitude: 13.332 }
+              routeType: fastest
+              travelMode: car
+              traffic: true
+              language: en-GB
+      responses:
+        '200':
+          description: Route calculated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrbisRouteResponse'
+              examples:
+                orbis:
+                  $ref: '#/components/examples/OrbisCalculateRouteResponse'
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized (invalid API key)
