@@ -4,22 +4,39 @@
     <meta charset="utf-8" />
     <title>Orbis OpenAPI - Swagger UI</title>
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
-    <style>body { margin: 0; }</style>
+    <style>
+      body { margin: 0; }
+      .topbar { border-bottom: 1px solid #eee; }
+    </style>
   </head>
   <body>
     <div id="swagger-ui"></div>
+
     <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+
     <script>
       window.onload = () => {
         window.ui = SwaggerUIBundle({
-          url: 'openapi.yaml',
+          // Match the actual files in ./docs
+          urls: [
+            { url: 'calculate-reachable-range.yaml', name: 'Reachable Range (v2)' },
+            { url: 'calculate-route.yaml', name: 'Calculate Route' },
+            { url: 'calculate-route-orbis-v2.yaml', name: 'Calculate Route (v2)' }
+          ],
+          urlsPrimaryName: 'Calculate Route (v2)',
           dom_id: '#swagger-ui',
           deepLinking: true,
           presets: [
             SwaggerUIBundle.presets.apis,
-            SwaggerUIBundle.SwaggerUIStandalonePreset
+            SwaggerUIStandalonePreset
           ],
-          layout: 'BaseLayout'
+          layout: 'StandaloneLayout',
+          docExpansion: 'none',
+          defaultModelsExpandDepth: -1,
+          persistAuthorization: true,
+          validatorUrl: null,
+          tryItOutEnabled: true
         });
       };
     </script>
