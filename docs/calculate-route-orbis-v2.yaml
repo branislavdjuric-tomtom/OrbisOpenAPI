@@ -1,0 +1,338 @@
+openapi: 3.0.3
+info:
+  title: TomTom Orbis Maps - Calculate Route (Service v2)
+  version: "2"
+  description: |
+    Calculate Route service with additional parameters and response fields.
+    This spec focuses on the extra capabilities: travel time variants, section reporting, road shields, and important road stretches.
+servers:
+  - url: https://api.tomtom.com
+    description: Default global API endpoint
+tags:
+  - name: calculate-route
+    description: Calculate Route (Orbis v2)
+security:
+  - tomtomApiKey: []
+
+paths:
+  /maps/orbis/routing/calculateRoute/{routePlanningLocations}/{contentType}:
+    parameters:
+      - $ref: '#/components/parameters/RoutePlanningLocations'
+      - $ref: '#/components/parameters/ContentType'
+    get:
+      tags: [calculate-route]
+      operationId: calculateRouteGet
+      summary: Calculate Route (GET)
+      description: Calculate a route with optional extra computations and section reporting.
+      parameters:
+        - $ref: '#/components/parameters/computeTravelTimeFor'
+        - $ref: '#/components/parameters/sectionType'
+        - $ref: '#/components/parameters/language'
+        - $ref: '#/components/parameters/vehicleCommercial'
+      responses:
+        '200':
+          description: Route computed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalculateRouteSuccess'
+              examples:
+                exampleSuccess:
+                  value:
+                    formatVersion: "0.0.12"
+                    roadShieldAtlasReference: "atlas-2024-06"
+                    routes:
+                      - summary:
+                          lengthInMeters: 1147
+                          travelTimeInSeconds: 161
+                          trafficDelayInSeconds: 15
+                          trafficLengthInMeters: 147
+                          departureTime: "2015-04-02T15:01:57+02:00"
+                          arrivalTime: "2015-04-02T15:04:38+02:00"
+                          batteryConsumptionInkWh: 0.155
+                          noTrafficTravelTimeInSeconds: 94
+                          historicTrafficTravelTimeInSeconds: 113
+                          liveTrafficIncidentsTravelTimeInSeconds: 161
+                        sections:
+                          - startPointIndex: 2
+                            endPointIndex: 5
+                            sectionType: TOLL_ROAD
+                          - startPointIndex: 0
+                            endPointIndex: 3
+                            sectionType: IMPORTANT_ROAD_STRETCH
+                            importantRoadStretchIndex: 0
+                            streetName:
+                              text: "Sample Street"
+                          - startPointIndex: 5
+                            endPointIndex: 6
+                            sectionType: IMPORTANT_ROAD_STRETCH
+                            importantRoadStretchIndex: 0
+                            streetName:
+                              text: "Sample Street"
+                          - startPointIndex: 6
+                            endPointIndex: 7
+                            sectionType: IMPORTANT_ROAD_STRETCH
+                            importantRoadStretchIndex: 2
+                            streetName:
+                              text: "Another Street"
+                            roadNumbers:
+                              - text: "A10"
+                              - text: "E10"
+                          - startPointIndex: 8
+                            endPointIndex: 9
+                            sectionType: IMPORTANT_ROAD_STRETCH
+                            importantRoadStretchIndex: 1
+                            roadNumbers:
+                              - text: "A10"
+        '400':
+          description: Bad request (invalid parameters)
+        '401':
+          description: Unauthorized (invalid or missing API key)
+        '500':
+          description: Server error
+    post:
+      tags: [calculate-route]
+      operationId: calculateRoutePost
+      summary: Calculate Route (POST)
+      description: Calculate a route with optional extra computations and section reporting.
+      parameters:
+        - $ref: '#/components/parameters/computeTravelTimeFor'
+        - $ref: '#/components/parameters/sectionType'
+        - $ref: '#/components/parameters/language'
+        - $ref: '#/components/parameters/vehicleCommercial'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RouteRequest'
+      responses:
+        '200':
+          description: Route computed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalculateRouteSuccess'
+        '400':
+          description: Bad request (invalid parameters)
+        '401':
+          description: Unauthorized (invalid or missing API key)
+        '500':
+          description: Server error
+
+components:
+  securitySchemes:
+    tomtomApiKey:
+      type: apiKey
+      in: query
+      name: key
+      description: TomTom API key provided as query parameter `key`.
+
+  parameters:
+    RoutePlanningLocations:
+      name: routePlanningLocations
+      in: path
+      required: true
+      description: Origin and destination coordinates (e.g., "lat,lon:lat,lon").
+      schema:
+        type: string
+        example: "52.50931,13.42936:52.50274,13.43872"
+    ContentType:
+      name: contentType
+      in: path
+      required: true
+      description: Response content type.
+      schema:
+        type: string
+        enum: [json]
+        example: json
+
+    computeTravelTimeFor:
+      name: computeTravelTimeFor
+      in: query
+      required: false
+      description: |
+        Whether to compute additional travel times:
+        - none: do not compute additional travel times.
+        - all: include noTrafficTravelTimeInSeconds, historicTrafficTravelTimeInSeconds, liveTrafficIncidentsTravelTimeInSeconds in route summary.
+      schema:
+        type: string
+        enum: [none, all]
+        default: none
+
+    sectionType:
+      name: sectionType
+      in: query
+      required: false
+      description: |
+        Which section types to include in the response. May be provided multiple times.
+        Additional values: tollRoad, toll, tollVignette, roadShields, importantRoadStretch.
+        Note:
+        - If roadShields is requested, the response may include roadShieldAtlasReference.
+        - If importantRoadStretch is requested, language must also be set.
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          type: string
+          enum: [tollRoad, toll, tollVignette, roadShields, importantRoadStretch]
+        example:
+          - tollRoad
+          - importantRoadStretch
+
+    language:
+      name: language
+      in: query
+      required: false
+      description: |
+        Language for returned place names and guidance phonetics.
+        If the selected language isn't supported, en-GB is used.
+        Must be set when sectionType includes importantRoadStretch.
+      schema:
+        type: string
+        example: en-GB
+
+    vehicleCommercial:
+      name: vehicleCommercial
+      in: query
+      required: false
+      description: Only allowed value is false.
+      schema:
+        type: boolean
+        enum: [false]
+        default: false
+
+  schemas:
+    RouteRequest:
+      type: object
+      description: Generic POST route request body (shape depends on base Calculate Route; accepts arbitrary fields).
+      additionalProperties: true
+
+    CalculateRouteSuccess:
+      type: object
+      description: Successful response containing routes and optional atlas reference.
+      properties:
+        formatVersion:
+          type: string
+        roadShieldAtlasReference:
+          type: string
+          description: Present when roadShields section type is requested.
+        routes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Route'
+      required: [formatVersion, routes]
+
+    Route:
+      type: object
+      properties:
+        summary:
+          $ref: '#/components/schemas/Summary'
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Section'
+
+    Summary:
+      type: object
+      properties:
+        lengthInMeters:
+          type: integer
+          format: int32
+        travelTimeInSeconds:
+          type: integer
+          format: int32
+        trafficDelayInSeconds:
+          type: integer
+          format: int32
+        trafficLengthInMeters:
+          type: integer
+          format: int32
+        departureTime:
+          type: string
+          format: date-time
+        arrivalTime:
+          type: string
+          format: date-time
+        batteryConsumptionInkWh:
+          type: number
+          format: float
+        noTrafficTravelTimeInSeconds:
+          type: integer
+          format: int32
+          description: Included if computeTravelTimeFor=all.
+        historicTrafficTravelTimeInSeconds:
+          type: integer
+          format: int32
+          description: Included if computeTravelTimeFor=all.
+        liveTrafficIncidentsTravelTimeInSeconds:
+          type: integer
+          format: int32
+          description: Included if computeTravelTimeFor=all.
+
+    Section:
+      type: object
+      properties:
+        startPointIndex:
+          type: integer
+          format: int32
+        endPointIndex:
+          type: integer
+          format: int32
+        sectionType:
+          type: string
+          description: Response section type.
+          enum:
+            - TOLL_ROAD
+            - TOLL
+            - TOLL_VIGNETTE
+            - ROAD_SHIELDS
+            - IMPORTANT_ROAD_STRETCH
+        importantRoadStretchIndex:
+          type: integer
+          format: int32
+          description: Lower value means higher importance; starts at 0.
+        streetName:
+          $ref: '#/components/schemas/StreetName'
+        roadNumbers:
+          type: array
+          description: Array sorted by display priority (descending).
+          items:
+            $ref: '#/components/schemas/RoadNumber'
+        roadShieldReferences:
+          type: array
+          description: Present for ROAD_SHIELDS sections.
+          items:
+            $ref: '#/components/schemas/RoadShieldReference'
+
+    StreetName:
+      type: object
+      properties:
+        text:
+          type: string
+      required: [text]
+
+    RoadNumber:
+      type: object
+      properties:
+        text:
+          type: string
+      required: [text]
+
+    RoadShieldReference:
+      type: object
+      description: Single road shield reference.
+      properties:
+        reference:
+          type: string
+          description: Unique identifier for the road shield.
+        shieldContent:
+          type: string
+          description: Optional string to be shown on the road shield.
+        affixes:
+          type: array
+          description: Optional list of affixes to show in addition to shieldContent.
+          items:
+            type: string
+      required: [reference]
