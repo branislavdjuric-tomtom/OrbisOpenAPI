@@ -2,13 +2,6 @@
 
 This repository contains the OpenAPI (Swagger) specification for the Orbis API and simple viewers to explore the spec easily.
 
-Quick links
-- Swagger UI (GitHub Pages): https://branislavdjuric-tomtom.github.io/OrbisOpenAPI/
-- Redoc (GitHub Pages): https://branislavdjuric-tomtom.github.io/OrbisOpenAPI/redoc.html
-- Raw spec: https://raw.githubusercontent.com/branislavdjuric-tomtom/OrbisOpenAPI/main/docs/openapi.yaml
-
-Note: If the Pages links 404, enable GitHub Pages for this repo (Settings → Pages → Source: Deploy from a branch → Branch: main, Folder: /docs).
-
 ## Structure
 
 - docs/openapi.yaml — OpenAPI 3.0.x specification
