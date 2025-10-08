@@ -1,8 +1,10 @@
 openapi: 3.0.3
 info:
-  title: TomTom Orbis Maps Routing API - Calculate Route (POC)
-  version: 0.1.0-orbis
-  description: Unofficial POC OpenAPI specification for TomTom Orbis Maps calculateRoute endpoint. Private use only.
+  title: TomTom Orbis Maps Routing API - Calculate Route (Aligned with Docs)
+  version: 0.1.0-orbis-aligned
+  description: >
+    Unofficial POC OpenAPI specification aligned with TomTom Orbis Maps calculateRoute documentation.
+    Includes Orbis-specific parameters (roadShields, importantRoadStretch, computeTravelTimeFor) and documented routing parameters.
   x-serviceVersion: "2"
   x-lastEdit: "2024-06-04"
 externalDocs:
@@ -42,11 +44,25 @@ components:
         type: string
         enum: [json]
         default: json
+    ApiVersion:
+      name: apiVersion
+      in: query
+      description: Specifies the API version. If omitted, provide the TomTom-Api-Version header.
+      schema:
+        type: integer
+        enum: [2]
+    TomTomApiVersionHeader:
+      name: TomTom-Api-Version
+      in: header
+      description: Specifies the API version. If omitted, provide the apiVersion query parameter.
+      schema:
+        type: integer
+        enum: [2]
     ComputeTravelTimeFor:
       name: computeTravelTimeFor
       in: query
       description: >
-        Whether to compute additional travel times (besides the best-estimate): none (default) or all (adds
+        Orbis: whether to compute additional travel times (besides best-estimate). none (default) or all (adds
         noTrafficTravelTimeInSeconds, historicTrafficTravelTimeInSeconds, liveTrafficIncidentsTravelTimeInSeconds to route summary).
       schema:
         type: string
@@ -57,8 +73,7 @@ components:
       in: query
       description: >
         Which section types to include in the response. May be specified multiple times
-        (e.g., ...&sectionType=tollRoad&sectionType=tollVignette...). Additional Orbis values:
-        tollRoad, toll, tollVignette, roadShields, importantRoadStretch.
+        (e.g., ...&sectionType=toll&sectionType=traffic...). Includes documented types plus Orbis extras.
         Note: If importantRoadStretch is requested, language must also be set.
       style: form
       explode: true
@@ -66,11 +81,30 @@ components:
         type: array
         items:
           type: string
-          enum: [tollRoad, toll, tollVignette, roadShields, importantRoadStretch]
+          enum:
+            - carTrain
+            - ferry
+            - tunnel
+            - motorway
+            - pedestrian
+            - toll
+            - country
+            - travelMode
+            - traffic
+            - carpool
+            - urban
+            - unpaved
+            - lowEmissionZone
+            - speedLimit
+            # Orbis extras
+            - tollRoad
+            - tollVignette
+            - roadShields
+            - importantRoadStretch
     VehicleCommercial:
       name: vehicleCommercial
       in: query
-      description: Default and only allowed value is false.
+      description: Orbis: Default and only allowed value is false.
       schema:
         type: boolean
         enum: [false]
@@ -80,7 +114,7 @@ components:
       in: query
       description: >
         Language of returned names and phonetics (IETF language tag). If not supported, en-GB is used.
-        See Orbis Supported Languages.
+        Required when sectionType includes importantRoadStretch.
       schema:
         type: string
         example: en-GB
@@ -90,23 +124,24 @@ components:
       description: Route type optimization.
       schema:
         type: string
-        enum: [fastest, shortest, eco]
-        default: fastest
+        enum: [fast, short, efficient, thrilling]
+        default: fast
     TravelMode:
       name: travelMode
       in: query
       description: Mode of travel/vehicle profile.
       schema:
         type: string
-        enum: [car, truck, bus, bicycle, pedestrian, motorcycle, van]
+        enum: [car]
         default: car
     DepartAt:
       name: departAt
       in: query
-      description: Departure time (ISO-8601). Do not use with arriveAt.
+      description: >
+        Departure time. Use 'now' or an ISO-8601 date-time (RFC 3339). Do not use with arriveAt.
       schema:
         type: string
-        format: date-time
+        example: now
     ArriveAt:
       name: arriveAt
       in: query
@@ -117,10 +152,12 @@ components:
     Traffic:
       name: traffic
       in: query
-      description: Consider traffic in calculations.
+      description: >
+        Decides how traffic is considered for computing routes.
       schema:
-        type: boolean
-        default: true
+        type: string
+        enum: [live, historical]
+        default: live
     InstructionsType:
       name: instructionsType
       in: query
@@ -129,6 +166,155 @@ components:
         type: string
         enum: [text, tagged]
         default: text
+    MaxAlternatives:
+      name: maxAlternatives
+      in: query
+      description: >
+        Number of desired alternative routes to be calculated (0-5).
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 5
+        default: 0
+    AlternativeType:
+      name: alternativeType
+      in: query
+      description: >
+        Objective for alternatives when maxAlternatives>0.
+      schema:
+        type: string
+        enum: [anyRoute, betterRoute]
+        default: anyRoute
+    MinDeviationDistance:
+      name: minDeviationDistance
+      in: query
+      description: >
+        Minimum distance (meters) alternatives follow the reference route from the origin. Cannot be used with arriveAt.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    MinDeviationTime:
+      name: minDeviationTime
+      in: query
+      description: >
+        Minimum time (seconds) alternatives follow the reference route from the origin. Cannot be used with arriveAt.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    SupportingPointIndexOfOrigin:
+      name: supportingPointIndexOfOrigin
+      in: query
+      description: >
+        Hint index in given polyline to disambiguate origin location on reference route. Cannot be used with arriveAt.
+      schema:
+        type: integer
+        minimum: 0
+    RouteRepresentation:
+      name: routeRepresentation
+      in: query
+      description: >
+        Representation of routes in the response (polyline points or encodedPolyline).
+      schema:
+        type: string
+        enum: [polyline, encodedPolyline]
+        default: polyline
+    ExtendedRouteRepresentation:
+      name: extendedRouteRepresentation
+      in: query
+      description: >
+        Extended representation data to include; may be specified multiple times.
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          type: string
+          enum: [distance, travelTime, consumption]
+    VehicleHeading:
+      name: vehicleHeading
+      in: query
+      description: >
+        Directional heading of the vehicle (degrees, 0..359). Ignored in base route reconstruction if reconstructionMode=route or update.
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 359
+    ReconstructionMode:
+      name: reconstructionMode
+      in: query
+      description: >
+        Specifies how to reconstruct a given polyline or individual legs.
+      schema:
+        type: string
+        enum: [track, route, update]
+        default: track
+    ArrivalSidePreference:
+      name: arrivalSidePreference
+      in: query
+      description: Preference of roadside on arrival to waypoints/destination.
+      schema:
+        type: string
+        enum: [anySide, curbSide]
+        default: anySide
+    VehicleHasETCTransponder:
+      name: vehicleHasElectricTollCollectionTransponder
+      in: query
+      description: >
+        Avoidance preference for ETC-transponder-only toll roads if a vehicle does not have an ETC transponder.
+      schema:
+        type: string
+        enum: [all, none]
+        default: all
+    VehicleMaxSpeed:
+      name: vehicleMaxSpeed
+      in: query
+      description: Maximum speed of the vehicle (km/h); 0 lets service determine appropriate value.
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 250
+        default: 0
+    VehicleEngineType:
+      name: vehicleEngineType
+      in: query
+      description: Engine type (combustion/electric).
+      schema:
+        type: string
+        enum: [combustion, electric]
+        default: combustion
+    VehicleWeight:
+      name: vehicleWeight
+      in: query
+      description: Vehicle weight (kg). Positive value enforces weight restrictions; required for some consumption parameters.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Avoid:
+      name: avoid
+      in: query
+      description: >
+        Specifies features the route calculation should try to avoid. Can be specified multiple times.
+        Must not be used together with 'avoids' per-leg POST parameter.
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - tollRoads
+            - motorways
+            - ferries
+            - unpavedRoads
+            - carpools
+            - alreadyUsedRoads
+            - borderCrossings
+            - tunnels
+            - carTrains
+            - lowEmissionZones
   schemas:
     LatLon:
       type: object
@@ -142,34 +328,153 @@ components:
           type: number
           format: double
           example: 13.329
+    EntryPoint:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+    Rectangle:
+      type: object
+      required: [southWestCorner, northEastCorner]
+      properties:
+        southWestCorner:
+          $ref: '#/components/schemas/LatLon'
+        northEastCorner:
+          $ref: '#/components/schemas/LatLon'
+    AvoidAreas:
+      type: object
+      properties:
+        rectangles:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/Rectangle'
+    RouteAvoid:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: Route attribute to avoid; same values as 'avoid' query parameter.
+          enum:
+            - tollRoads
+            - motorways
+            - ferries
+            - unpavedRoads
+            - carpools
+            - alreadyUsedRoads
+            - borderCrossings
+            - tunnels
+            - carTrains
+            - lowEmissionZones
+    PointWaypoint:
+      type: object
+      required: [waypointSourceType, supportingPointIndex]
+      properties:
+        waypointSourceType:
+          type: string
+          enum: [USER_DEFINED]
+        supportingPointIndex:
+          type: integer
+          minimum: 0
+    RouteStop:
+      type: object
+      properties:
+        pauseTimeInSeconds:
+          type: integer
+          minimum: 0
+          default: 0
+        entryPoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntryPoint'
+    Leg:
+      type: object
+      properties:
+        routeType:
+          type: string
+          enum: [fast, short, efficient, thrilling]
+        routeStop:
+          $ref: '#/components/schemas/RouteStop'
+        supportingPoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/LatLon'
+        encodedPolyline:
+          type: string
+        encodedPolylinePrecision:
+          type: integer
+          enum: [7]
+        avoids:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteAvoid'
     CalculateRouteRequest:
       type: object
-      required: [locations]
+      description: >
+        Request body for POST. Supports two input modes:
+        - Direct 'locations' array (origin, destination, optional intermediates)
+        - Route reconstruction inputs (supportingPoints/encodedPolyline, legs, etc.)
       properties:
+        # Simple locations mode
         locations:
           type: array
           minItems: 2
           description: Ordered list of waypoints (origin, destination, optional intermediates).
           items:
             $ref: '#/components/schemas/LatLon'
-        # Standard options (subset for POC; additional options may be supported)
+        # Route reconstruction mode
+        avoidAreas:
+          $ref: '#/components/schemas/AvoidAreas'
+        supportingPoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/LatLon'
+        encodedPolyline:
+          type: string
+        encodedPolylinePrecision:
+          type: integer
+          enum: [7]
+        pointWaypoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/PointWaypoint'
+        legs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Leg'
+        # Common routing options (subset)
         avoid:
           type: array
-          description: Features/road types to avoid.
+          description: Features/road types to avoid (query equivalent).
           items:
             type: string
-            enum: [motorways, tollRoads, ferries, unpavedRoads, carPools, alreadyUsedRoads]
+            enum:
+              - tollRoads
+              - motorways
+              - ferries
+              - unpavedRoads
+              - carpools
+              - alreadyUsedRoads
+              - borderCrossings
+              - tunnels
+              - carTrains
+              - lowEmissionZones
         routeType:
           type: string
-          enum: [fastest, shortest, eco]
-          default: fastest
+          enum: [fast, short, efficient, thrilling]
+          default: fast
         travelMode:
           type: string
-          enum: [car, truck, bus, bicycle, pedestrian, motorcycle, van]
+          enum: [car]
           default: car
         traffic:
-          type: boolean
-          default: true
+          type: string
+          enum: [live, historical]
+          default: live
         language:
           type: string
           example: en-GB
@@ -180,20 +485,18 @@ components:
         maxAlternatives:
           type: integer
           minimum: 0
-          maximum: 6
+          maximum: 5
           default: 0
         departAt:
           type: string
-          format: date-time
-          description: ISO-8601 departure time. Do not use together with arriveAt.
+          description: 'Use "now" or RFC 3339 date-time. Do not use with arriveAt.'
         arriveAt:
           type: string
           format: date-time
-          description: ISO-8601 arrival time. Do not use together with departAt.
+          description: 'Do not use with departAt.'
     OrbisRouteResponse:
       type: object
-      description: >
-        Orbis calculateRoute response (POC). Contains additional fields when specific parameters are requested.
+      description: Orbis calculateRoute response (aligned). Additional fields appear when specific parameters are requested.
       properties:
         formatVersion:
           type: string
@@ -211,10 +514,43 @@ components:
       properties:
         summary:
           $ref: '#/components/schemas/OrbisRouteSummary'
+        legs:
+          type: array
+          items:
+            $ref: '#/components/schemas/LegResponse'
+        progress:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProgressPoint'
         sections:
           type: array
           items:
             $ref: '#/components/schemas/OrbisSection'
+      additionalProperties: true
+    LegResponse:
+      type: object
+      properties:
+        summary:
+          $ref: '#/components/schemas/OrbisRouteSummary'
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/LatLon'
+        encodedPolyline:
+          type: string
+        encodedPolylinePrecision:
+          type: integer
+    ProgressPoint:
+      type: object
+      properties:
+        pointIndex:
+          type: integer
+        distanceInMeters:
+          type: number
+        travelTimeInSeconds:
+          type: integer
+        batteryConsumptionInkWh:
+          type: number
       additionalProperties: true
     OrbisRouteSummary:
       type: object
@@ -234,7 +570,22 @@ components:
         batteryConsumptionInkWh:
           type: number
           format: double
-          description: Present when EV options are in effect.
+          description: Present when electric model options are in effect.
+        fuelConsumptionInLiters:
+          type: number
+          format: double
+          description: Present when combustion model options are in effect.
+        deviationDistance:
+          type: number
+          description: Present for alternative routes.
+        deviationTime:
+          type: number
+          description: Present for alternative routes.
+        deviationPoint:
+          $ref: '#/components/schemas/LatLon'
+        planningReason:
+          type: string
+          description: Present when alternativeType=betterRoute.
         noTrafficTravelTimeInSeconds:
           type: integer
           description: Present when computeTravelTimeFor=all.
@@ -244,6 +595,12 @@ components:
         liveTrafficIncidentsTravelTimeInSeconds:
           type: integer
           description: Present when computeTravelTimeFor=all.
+        originalWaypointIndexAtEndOfLeg:
+          type: integer
+        userDefinedPauseTimeInSeconds:
+          type: integer
+        entryPointIndexAtEndOfLeg:
+          type: integer
       additionalProperties: true
     OrbisSection:
       type: object
@@ -255,7 +612,49 @@ components:
         sectionType:
           type: string
           description: Response section type.
-          enum: [TOLL_ROAD, TOLL, TOLL_VIGNETTE, ROAD_SHIELDS, IMPORTANT_ROAD_STRETCH]
+          enum:
+            - CAR_TRAIN
+            - FERRY
+            - TUNNEL
+            - MOTORWAY
+            - PEDESTRIAN
+            - TOLL
+            - COUNTRY
+            - TRAVEL_MODE
+            - TRAFFIC
+            - CARPOOL
+            - URBAN
+            - UNPAVED
+            - LOW_EMISSION_ZONE
+            - SPEED_LIMIT
+            # Orbis extras
+            - TOLL_ROAD
+            - TOLL_VIGNETTE
+            - ROAD_SHIELDS
+            - IMPORTANT_ROAD_STRETCH
+        countryCode:
+          type: string
+          description: Present for COUNTRY sections.
+        travelMode:
+          type: string
+          description: Present for TRAVEL_MODE sections (car or other).
+        simpleCategory:
+          type: string
+          description: Present for TRAFFIC sections (JAM, ROAD_WORK, ROAD_CLOSURE, OTHER).
+        effectiveSpeedInKmh:
+          type: number
+          description: Present for TRAFFIC sections.
+        delayInSeconds:
+          type: integer
+          description: Present for TRAFFIC sections.
+        magnitudeOfDelay:
+          type: integer
+          description: Present for TRAFFIC sections (0..4).
+        tec:
+          $ref: '#/components/schemas/TrafficEventContent'
+        eventId:
+          type: string
+          description: Present for TRAFFIC sections.
         importantRoadStretchIndex:
           type: integer
           description: Present for IMPORTANT_ROAD_STRETCH; lower value means higher importance (starts at 0).
@@ -271,6 +670,20 @@ components:
           items:
             $ref: '#/components/schemas/RoadShieldReference'
       additionalProperties: true
+    TrafficEventContent:
+      type: object
+      properties:
+        effectCode:
+          type: integer
+        causes:
+          type: array
+          items:
+            type: object
+            properties:
+              mainCauseCode:
+                type: integer
+              subCauseCode:
+                type: integer
     StreetName:
       type: object
       properties:
@@ -312,18 +725,34 @@ components:
               noTrafficTravelTimeInSeconds: 94
               historicTrafficTravelTimeInSeconds: 113
               liveTrafficIncidentsTravelTimeInSeconds: 161
+            legs:
+              - summary:
+                  lengthInMeters: 108
+                  travelTimeInSeconds: 11
+                points:
+                  - { latitude: 52.5093087, longitude: 13.4293737 }
+                  - { latitude: 52.5090373, longitude: 13.4291258 }
+                encodedPolyline: "}lcph^qmsc_GrhD|yC"
+                encodedPolylinePrecision: 7
+            progress:
+              - pointIndex: 0
+                travelTimeInSeconds: 0
+                distanceInMeters: 0
+                batteryConsumptionInkWh: 0
+              - pointIndex: 5
+                travelTimeInSeconds: 7
+                distanceInMeters: 74
+                batteryConsumptionInkWh: 0.002
+              - pointIndex: 87
+                travelTimeInSeconds: 161
+                distanceInMeters: 1147
+                batteryConsumptionInkWh: 0.155
             sections:
               - startPointIndex: 2
                 endPointIndex: 5
-                sectionType: TOLL_ROAD
+                sectionType: TOLL
               - startPointIndex: 0
                 endPointIndex: 3
-                sectionType: IMPORTANT_ROAD_STRETCH
-                importantRoadStretchIndex: 0
-                streetName:
-                  text: "Sample Street"
-              - startPointIndex: 5
-                endPointIndex: 6
                 sectionType: IMPORTANT_ROAD_STRETCH
                 importantRoadStretchIndex: 0
                 streetName:
@@ -349,21 +778,38 @@ paths:
       tags: [OrbisRouting]
       operationId: calculateRouteOrbisGet
       summary: Calculate a route (Orbis GET)
-      description: Calculate a route using path-encoded locations. Orbis-specific parameters supported.
+      description: Calculate a route using path-encoded locations. Orbis-specific parameters and documented routing parameters supported.
       parameters:
         - $ref: '#/components/parameters/RoutePlanningLocations'
         - $ref: '#/components/parameters/ContentType'
+        - $ref: '#/components/parameters/ApiVersion'
+        - $ref: '#/components/parameters/TomTomApiVersionHeader'
         - $ref: '#/components/parameters/ComputeTravelTimeFor'
         - $ref: '#/components/parameters/SectionType'
         - $ref: '#/components/parameters/VehicleCommercial'
         - $ref: '#/components/parameters/Language'
-        # Common routing options (subset)
+        # Common routing options
         - $ref: '#/components/parameters/RouteType'
         - $ref: '#/components/parameters/TravelMode'
         - $ref: '#/components/parameters/DepartAt'
         - $ref: '#/components/parameters/ArriveAt'
         - $ref: '#/components/parameters/Traffic'
         - $ref: '#/components/parameters/InstructionsType'
+        - $ref: '#/components/parameters/MaxAlternatives'
+        - $ref: '#/components/parameters/AlternativeType'
+        - $ref: '#/components/parameters/MinDeviationDistance'
+        - $ref: '#/components/parameters/MinDeviationTime'
+        - $ref: '#/components/parameters/SupportingPointIndexOfOrigin'
+        - $ref: '#/components/parameters/RouteRepresentation'
+        - $ref: '#/components/parameters/ExtendedRouteRepresentation'
+        - $ref: '#/components/parameters/VehicleHeading'
+        - $ref: '#/components/parameters/ReconstructionMode'
+        - $ref: '#/components/parameters/ArrivalSidePreference'
+        - $ref: '#/components/parameters/VehicleHasETCTransponder'
+        - $ref: '#/components/parameters/Avoid'
+        - $ref: '#/components/parameters/VehicleEngineType'
+        - $ref: '#/components/parameters/VehicleMaxSpeed'
+        - $ref: '#/components/parameters/VehicleWeight'
       security:
         - TomTomApiKey: []
       responses:
@@ -380,41 +826,90 @@ paths:
           description: Invalid request
         '401':
           description: Unauthorized (invalid API key)
-  /routing/calculateRoute/{contentType}:
+        '403':
+          description: Forbidden / Not authorized / Account inactive
+        '404':
+          description: Not found
+        '405':
+          description: Method not allowed
+        '408':
+          description: Request timeout
+        '414':
+          description: Requested URI is too long
+        '415':
+          description: Unsupported Media Type
+        '429':
+          description: Too Many Requests
+        '500':
+          description: Internal error or compute time limit exceeded
+        '502':
+          description: Internal network connectivity issue
+        '503':
+          description: Service unavailable
+        '504':
+          description: Internal network connectivity issue
+        '596':
+          description: Service not found
     post:
       tags: [OrbisRouting]
       operationId: calculateRouteOrbisPost
       summary: Calculate a route (Orbis POST)
-      description: Calculate a route using JSON body with locations. Orbis-specific parameters supported.
+      description: Calculate a route using JSON body. Supports direct locations and route reconstruction inputs. Orbis-specific parameters and documented routing parameters supported.
       security:
         - TomTomApiKey: []
       parameters:
+        - $ref: '#/components/parameters/RoutePlanningLocations'
         - $ref: '#/components/parameters/ContentType'
+        - $ref: '#/components/parameters/ApiVersion'
+        - $ref: '#/components/parameters/TomTomApiVersionHeader'
         - $ref: '#/components/parameters/ComputeTravelTimeFor'
         - $ref: '#/components/parameters/SectionType'
         - $ref: '#/components/parameters/VehicleCommercial'
         - $ref: '#/components/parameters/Language'
-        # Common routing options (subset)
+        # Common routing options
         - $ref: '#/components/parameters/RouteType'
         - $ref: '#/components/parameters/TravelMode'
         - $ref: '#/components/parameters/DepartAt'
         - $ref: '#/components/parameters/ArriveAt'
         - $ref: '#/components/parameters/Traffic'
         - $ref: '#/components/parameters/InstructionsType'
+        - $ref: '#/components/parameters/MaxAlternatives'
+        - $ref: '#/components/parameters/AlternativeType'
+        - $ref: '#/components/parameters/MinDeviationDistance'
+        - $ref: '#/components/parameters/MinDeviationTime'
+        - $ref: '#/components/parameters/SupportingPointIndexOfOrigin'
+        - $ref: '#/components/parameters/RouteRepresentation'
+        - $ref: '#/components/parameters/ExtendedRouteRepresentation'
+        - $ref: '#/components/parameters/VehicleHeading'
+        - $ref: '#/components/parameters/ReconstructionMode'
+        - $ref: '#/components/parameters/ArrivalSidePreference'
+        - $ref: '#/components/parameters/VehicleHasETCTransponder'
+        - $ref: '#/components/parameters/Avoid'
+        - $ref: '#/components/parameters/VehicleEngineType'
+        - $ref: '#/components/parameters/VehicleMaxSpeed'
+        - $ref: '#/components/parameters/VehicleWeight'
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CalculateRouteRequest'
-            example:
-              locations:
-                - { latitude: 52.508, longitude: 13.329 }
-                - { latitude: 52.502, longitude: 13.332 }
-              routeType: fastest
-              travelMode: car
-              traffic: true
-              language: en-GB
+            examples:
+              simple:
+                summary: Simple locations request
+                value:
+                  locations:
+                    - { latitude: 52.508, longitude: 13.329 }
+                    - { latitude: 52.502, longitude: 13.332 }
+                  routeType: fast
+                  travelMode: car
+                  traffic: live
+                  language: en-GB
+              reconstruction:
+                summary: Route reconstruction with encoded polyline
+                value:
+                  encodedPolyline: "ogcph^_esc_GnxOf`N"
+                  encodedPolylinePrecision: 7
       responses:
         '200':
           description: Route calculated
@@ -429,3 +924,27 @@ paths:
           description: Invalid request
         '401':
           description: Unauthorized (invalid API key)
+        '403':
+          description: Forbidden / Not authorized / Account inactive
+        '404':
+          description: Not found
+        '405':
+          description: Method not allowed
+        '408':
+          description: Request timeout
+        '414':
+          description: Requested URI is too long
+        '415':
+          description: Unsupported Media Type
+        '429':
+          description: Too Many Requests
+        '500':
+          description: Internal error or compute time limit exceeded
+        '502':
+          description: Internal network connectivity issue
+        '503':
+          description: Service unavailable
+        '504':
+          description: Internal network connectivity issue
+        '596':
+          description: Service not found

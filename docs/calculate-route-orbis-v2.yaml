@@ -1,13 +1,18 @@
-openapi: 3.0.3
+openapi: "3.0.3"
 info:
   title: TomTom Orbis Maps - Calculate Route (Service v2)
   version: "2"
-  description: |
+  description: >
     Calculate Route service with additional parameters and response fields.
     This spec focuses on the extra capabilities: travel time variants, section reporting, road shields, and important road stretches.
+  x-serviceVersion: "2"
+  x-lastEdit: "2024-06-04"
+externalDocs:
+  description: Orbis Calculate Route docs
+  url: https://developer.tomtom.com
 servers:
-  - url: https://api.tomtom.com
-    description: Default global API endpoint
+  - url: https://api.tomtom.com/maps/orbis
+    description: TomTom Orbis Maps base URL
 tags:
   - name: calculate-route
     description: Calculate Route (Orbis v2)
@@ -15,16 +20,21 @@ security:
   - tomtomApiKey: []
 
 paths:
-  /maps/orbis/routing/calculateRoute/{routePlanningLocations}/{contentType}:
+  /routing/calculateRoute/{routePlanningLocations}/{contentType}:
     parameters:
       - $ref: '#/components/parameters/RoutePlanningLocations'
       - $ref: '#/components/parameters/ContentType'
     get:
-      tags: [calculate-route]
+      tags:
+        - calculate-route
       operationId: calculateRouteGet
       summary: Calculate Route (GET)
       description: Calculate a route with optional extra computations and section reporting.
+      security:
+        - tomtomApiKey: []
       parameters:
+        - $ref: '#/components/parameters/ApiVersion'
+        - $ref: '#/components/parameters/TomTomApiVersionHeader'
         - $ref: '#/components/parameters/computeTravelTimeFor'
         - $ref: '#/components/parameters/sectionType'
         - $ref: '#/components/parameters/language'
@@ -88,14 +98,41 @@ paths:
           description: Bad request (invalid parameters)
         '401':
           description: Unauthorized (invalid or missing API key)
+        '403':
+          description: Forbidden / Not authorized / Account inactive
+        '404':
+          description: Not found
+        '405':
+          description: Method not allowed
+        '408':
+          description: Request timeout
+        '414':
+          description: Requested URI is too long
+        '415':
+          description: Unsupported Media Type
+        '429':
+          description: Too Many Requests
         '500':
           description: Server error
+        '502':
+          description: Internal network connectivity issue
+        '503':
+          description: Service currently unavailable
+        '504':
+          description: Internal network connectivity issue
+        '596':
+          description: Service not found
     post:
-      tags: [calculate-route]
+      tags:
+        - calculate-route
       operationId: calculateRoutePost
       summary: Calculate Route (POST)
       description: Calculate a route with optional extra computations and section reporting.
+      security:
+        - tomtomApiKey: []
       parameters:
+        - $ref: '#/components/parameters/ApiVersion'
+        - $ref: '#/components/parameters/TomTomApiVersionHeader'
         - $ref: '#/components/parameters/computeTravelTimeFor'
         - $ref: '#/components/parameters/sectionType'
         - $ref: '#/components/parameters/language'
@@ -117,8 +154,30 @@ paths:
           description: Bad request (invalid parameters)
         '401':
           description: Unauthorized (invalid or missing API key)
+        '403':
+          description: Forbidden / Not authorized / Account inactive
+        '404':
+          description: Not found
+        '405':
+          description: Method not allowed
+        '408':
+          description: Request timeout
+        '414':
+          description: Requested URI is too long
+        '415':
+          description: Unsupported Media Type
+        '429':
+          description: Too Many Requests
         '500':
           description: Server error
+        '502':
+          description: Internal network connectivity issue
+        '503':
+          description: Service currently unavailable
+        '504':
+          description: Internal network connectivity issue
+        '596':
+          description: Service not found
 
 components:
   securitySchemes:
@@ -126,48 +185,78 @@ components:
       type: apiKey
       in: query
       name: key
-      description: TomTom API key provided as query parameter `key`.
+      description: >-
+        TomTom API key provided as query parameter `key`.
 
   parameters:
     RoutePlanningLocations:
       name: routePlanningLocations
       in: path
       required: true
-      description: Origin and destination coordinates (e.g., "lat,lon:lat,lon").
+      description: >-
+        Origin and destination coordinates (e.g., "lat,lon:lat,lon").
       schema:
         type: string
         example: "52.50931,13.42936:52.50274,13.43872"
+
     ContentType:
       name: contentType
       in: path
       required: true
-      description: Response content type.
+      description: >-
+        Response content type.
       schema:
         type: string
-        enum: [json]
+        enum:
+          - json
         example: json
+
+    ApiVersion:
+      name: apiVersion
+      in: query
+      required: false
+      description: >-
+        Specifies the API version. If omitted, provide the TomTom-Api-Version header.
+      schema:
+        type: integer
+        enum:
+          - 2
+
+    TomTomApiVersionHeader:
+      name: TomTom-Api-Version
+      in: header
+      required: false
+      description: >-
+        Specifies the API version. If omitted, provide the apiVersion query parameter.
+      schema:
+        type: integer
+        enum:
+          - 2
+          aaa
 
     computeTravelTimeFor:
       name: computeTravelTimeFor
       in: query
       required: false
-      description: |
+      description: >-
         Whether to compute additional travel times:
         - none: do not compute additional travel times.
         - all: include noTrafficTravelTimeInSeconds, historicTrafficTravelTimeInSeconds, liveTrafficIncidentsTravelTimeInSeconds in route summary.
       schema:
         type: string
-        enum: [none, all]
+        enum:
+          - none
+          - all
         default: none
 
     sectionType:
       name: sectionType
       in: query
       required: false
-      description: |
+      description: >-
         Which section types to include in the response. May be provided multiple times.
         Additional values: tollRoad, toll, tollVignette, roadShields, importantRoadStretch.
-        Note:
+        Notes:
         - If roadShields is requested, the response may include roadShieldAtlasReference.
         - If importantRoadStretch is requested, language must also be set.
       style: form
@@ -176,7 +265,12 @@ components:
         type: array
         items:
           type: string
-          enum: [tollRoad, toll, tollVignette, roadShields, importantRoadStretch]
+          enum:
+            - tollRoad
+            - toll
+            - tollVignette
+            - roadShields
+            - importantRoadStretch
         example:
           - tollRoad
           - importantRoadStretch
@@ -185,7 +279,7 @@ components:
       name: language
       in: query
       required: false
-      description: |
+      description: >-
         Language for returned place names and guidance phonetics.
         If the selected language isn't supported, en-GB is used.
         Must be set when sectionType includes importantRoadStretch.
@@ -197,32 +291,39 @@ components:
       name: vehicleCommercial
       in: query
       required: false
-      description: Only allowed value is false.
+      description: >-
+        Only allowed value is false.
       schema:
         type: boolean
-        enum: [false]
+        enum:
+          - false
         default: false
 
   schemas:
     RouteRequest:
       type: object
-      description: Generic POST route request body (shape depends on base Calculate Route; accepts arbitrary fields).
+      description: >-
+        Generic POST route request body (shape depends on base Calculate Route; accepts arbitrary fields).
       additionalProperties: true
 
     CalculateRouteSuccess:
       type: object
-      description: Successful response containing routes and optional atlas reference.
+      description: >-
+        Successful response containing routes and optional atlas reference.
       properties:
         formatVersion:
           type: string
         roadShieldAtlasReference:
           type: string
-          description: Present when roadShields section type is requested.
+          description: >-
+            Present when roadShields section type is requested.
         routes:
           type: array
           items:
             $ref: '#/components/schemas/Route'
-      required: [formatVersion, routes]
+      required:
+        - formatVersion
+        - routes
 
     Route:
       type: object
@@ -261,15 +362,18 @@ components:
         noTrafficTravelTimeInSeconds:
           type: integer
           format: int32
-          description: Included if computeTravelTimeFor=all.
+          description: >-
+            Included if computeTravelTimeFor=all.
         historicTrafficTravelTimeInSeconds:
           type: integer
           format: int32
-          description: Included if computeTravelTimeFor=all.
+          description: >-
+            Included if computeTravelTimeFor=all.
         liveTrafficIncidentsTravelTimeInSeconds:
           type: integer
           format: int32
-          description: Included if computeTravelTimeFor=all.
+          description: >-
+            Included if computeTravelTimeFor=all.
 
     Section:
       type: object
@@ -282,7 +386,8 @@ components:
           format: int32
         sectionType:
           type: string
-          description: Response section type.
+          description: >-
+            Response section type.
           enum:
             - TOLL_ROAD
             - TOLL
@@ -292,17 +397,20 @@ components:
         importantRoadStretchIndex:
           type: integer
           format: int32
-          description: Lower value means higher importance; starts at 0.
+          description: >-
+            Lower value means higher importance; starts at 0.
         streetName:
           $ref: '#/components/schemas/StreetName'
         roadNumbers:
           type: array
-          description: Array sorted by display priority (descending).
+          description: >-
+            Array sorted by display priority (descending).
           items:
             $ref: '#/components/schemas/RoadNumber'
         roadShieldReferences:
           type: array
-          description: Present for ROAD_SHIELDS sections.
+          description: >-
+            Present for ROAD_SHIELDS sections.
           items:
             $ref: '#/components/schemas/RoadShieldReference'
 
@@ -311,28 +419,35 @@ components:
       properties:
         text:
           type: string
-      required: [text]
+      required:
+        - text
 
     RoadNumber:
       type: object
       properties:
         text:
           type: string
-      required: [text]
+      required:
+        - text
 
     RoadShieldReference:
       type: object
-      description: Single road shield reference.
+      description: >-
+        Single road shield reference.
       properties:
         reference:
           type: string
-          description: Unique identifier for the road shield.
+          description: >-
+            Unique identifier for the road shield.
         shieldContent:
           type: string
-          description: Optional string to be shown on the road shield.
+          description: >-
+            Optional string to be shown on the road shield.
         affixes:
           type: array
-          description: Optional list of affixes to show in addition to shieldContent.
+          description: >-
+            Optional list of affixes to show in addition to shieldContent.
           items:
             type: string
-      required: [reference]
+      required:
+        - reference

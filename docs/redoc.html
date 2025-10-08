@@ -3,10 +3,78 @@
   <head>
     <meta charset="utf-8" />
     <title>Orbis OpenAPI - Redoc</title>
-    <style>body { margin: 0; padding: 0; }</style>
+    <style>
+      body { margin: 0; padding: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+      header {
+        display: flex; align-items: center; gap: 12px;
+        padding: 10px 16px; border-bottom: 1px solid #eee; background: #f9f9f9;
+      }
+      header h1 { font-size: 16px; margin: 0 8px 0 0; font-weight: 600; }
+      header .spacer { flex: 1; }
+      select { padding: 6px 8px; }
+    </style>
   </head>
   <body>
-    <redoc spec-url="openapi.yaml"></redoc>
+    <header>
+      <h1>Orbis OpenAPI · Redoc</h1>
+      <div class="spacer"></div>
+      <label for="spec-select">Spec:</label>
+      <select id="spec-select">
+        <option value="calculate-reachable-range.yaml">Reachable Range (v2)</option>
+        <option value="calculate-route.yaml">Calculate Route</option>
+        <option value="calculate-route-orbis-v2.yaml" selected>Calculate Route (v2)</option>
+      </select>
+    </header>
+
+    <div id="redoc-container"></div>
+
     <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+    <script>
+      const selectEl = document.getElementById('spec-select');
+      const container = document.getElementById('redoc-container');
+
+      const aliases = {
+        'calculate-reachable-range': 'calculate-reachable-range.yaml',
+        'calculate-route': 'calculate-route.yaml',
+        'calculate-route-orbis-v2': 'calculate-route-orbis-v2.yaml'
+      };
+
+      function getInitialSpec() {
+        const params = new URLSearchParams(location.search);
+        const q = params.get('spec');
+        if (!q) return selectEl.value;
+        if (aliases[q]) return aliases[q];
+        // allow direct file name in query (?spec=calculate-route.yaml)
+        if (q.endsWith('.yaml')) return q;
+        return selectEl.value;
+      }
+
+      function render(specUrl) {
+        Redoc.init(specUrl, {
+          scrollYOffset: 60,
+          hideDownloadButton: false,
+          expandResponses: '200,201',
+          theme: {
+            colors: { primary: { main: '#2E77D0' } },
+            logo: { gutter: '10px' }
+          }
+        }, container);
+      }
+
+      // Initialize from query param or default selected option
+      const initial = getInitialSpec();
+      selectEl.value = initial;
+      render(initial);
+
+      // Switch spec on change
+      selectEl.addEventListener('change', () => {
+        render(selectEl.value);
+        const params = new URLSearchParams(location.search);
+        // push state with updated spec param for easy sharing
+        params.set('spec', Object.entries(aliases).find(([,f]) => f === selectEl.value)?.[0] || selectEl.value);
+        const url = `${location.pathname}?${params.toString()}`;
+        history.replaceState(null, '', url);
+      });
+    </script>
   </body>
 </html>
